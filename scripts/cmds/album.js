@@ -58,15 +58,11 @@ module.exports = {
      }
 
         
-    } else if (args[0] === "list") {
-      try {
-      const response = await axios.get(`${apiUrl}/api/album/list`);
-      api.sendMessage(response.data.message, event.threadID, event.messageID);
-     } catch (error) {
-      api.sendMessage(`❌ Error: ${error.message}`, event.threadID, event.messageID);
-      }
-    } else {
-      const displayNames = 
+     } else if (args[0] === "list") {try {
+       const response = await axios.get(`${apiUrl}/api/album/list`);
+       api.sendMessage(response.data.message, event.threadID, event.messageID); } catch (error) {
+       api.sendMessage(`❌ Error: ${error.message}`, event.threadID, event.messageID);  } } else {
+       const displayNames = 
         [
   "𝐅𝐮𝐧𝐧𝐲 𝐕𝐢𝐝𝐞𝐨 🎀",
   "𝐈𝐬𝐥𝐚𝐦𝐢𝐜 𝐕𝐢𝐝𝐞𝐨 🎀",
