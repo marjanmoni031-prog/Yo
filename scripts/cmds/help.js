@@ -4,110 +4,99 @@ const { commands, aliases } = global.GoatBot;
 module.exports = {
   config: {
     name: "help",
-    version: "1.17",
-    author: "Hasib",
+    version: "2.0",
+    author: "Azadx69x",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      en: "View command usage and list all commands directly",
-    },
-    longDescription: {
-      en: "View command usage and list all commands directly",
-    },
-    category: "info",
-    guide: {
-      en: "help cmdName",
-    },
-    priority: 1,
+    description: { en: "View commands list with categories or command details" },
+    category: "info"
   },
 
-  onStart: async function ({ message, args, event, threadsData, role }) {
-    const { threadID } = event;
-    const threadData = await threadsData.get(threadID);
-    const prefix = getPrefix(threadID);
+  onStart: async function({ message, args, event, role }) {
+    const prefix = getPrefix(event.threadID);
+    const commandName = (args[0] || "").toLowerCase();
+    const cmd = commands.get(commandName) || commands.get(aliases.get(commandName));
 
-    if (args.length === 0) {
-      const categories = {};
-      let msg = "";
+    function roleTextToString(role) {  
+      return role === 0 ? "🔓 All Users"  
+        : role === 1 ? "🛡 Group Admins"  
+        : "👑 Bot Admins";  
+    }  
 
-      msg += ``; 
+    if (cmd) {
+      const cfg = cmd.config;
+      const name = cfg.name;
+      const desc = typeof cfg.description === "string" ? cfg.description : cfg.description?.en || "No description";
+      const author = cfg.author || "Unknown";
+      const guideBody = typeof cfg.guide?.en === "string" ? cfg.guide.en.replace(/\{pn\}/g, prefix + name) : "No usage info";
+      const version = cfg.version || "1.0";
+      const roleOfCommand = cfg.role || 0;
+      const aliasesString = cfg.aliases?.length ? cfg.aliases.join(", ") : "None";
+      const cooldown = cfg.countDown || 1;
+      const category = cfg.category || "Uncategorized";
 
-      for (const [name, value] of commands) {
-        if (value.config.role > 1 && role < value.config.role) continue;
+      const msg = `╭───⊙
+│ 🧘‍♂️ Command: ${name}
+│ 📝 Desc: ${desc}
+│ ⚙️ Guide: ${guideBody}
+│ 🌀 Version: ${version}
+│ 🔐 Role: ${roleTextToString(roleOfCommand)}
+│ 🏷️ Aliases: ${aliasesString}
+│ ⏱️ Cooldown: ${cooldown}s
+│ 🗂️ Category: ${category}
+╰──────────────⊙`;
 
-        const category = value.config.category || "Uncategorized";
-        categories[category] = categories[category] || { commands: [] };
-        categories[category].commands.push(name);
-      }
+      return message.reply(msg);
+    }
 
-      Object.keys(categories).forEach((category) => {
-        if (category !== "info") {
-          msg += `\n╭─────⭓ ${category.toUpperCase()}`;
+    const page = parseInt(args[0]) || 1;
+    const numberOfOnePage = 30;
 
-          const names = categories[category].commands.sort();
-          for (let i = 0; i < names.length; i += 3) {
-            const cmds = names.slice(i, i + 2).map((item) => `✧${item}`);
-            msg += `\n│${cmds.join(" ".repeat(Math.max(1, 5 - cmds.join("").length)))}`;
-          }
+    const categories = {};
+    for (const [, cmd] of commands) {
+      if (cmd.config.role > 1 && role < cmd.config.role) continue;
+      const cat = cmd.config.category || "Uncategorized";
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(cmd.config.name);
+    }
 
-          msg += `\n╰────────────⭓\n`;
-        }
-      });
+    const categoryNames = Object.keys(categories).sort();
 
-      const totalCommands = commands.size;
-      msg += `\n\n⭔Bot has ${totalCommands} commands\n⭔Type ${prefix}𝐡𝐞𝐥𝐩 <𝚌𝚘𝚖𝚖𝚊𝚗𝚍 𝚗𝚊𝚖𝚎> to learn Usage.\n`;
-      msg += ``;
-      msg += `\n╭─✦ADMIN: Hasib彡 \n
-
-      try {
-        const hh = await message.reply({ body: msg });
-
-        // Automatically unsend the message after 30 seconds
-        setTimeout(() => {
-          message.unsend(hh.messageID);
-        }, 80000);
-
-      } catch (error) {
-        console.error("Error sending help message:", error);
-      }
-
-    } else {
-      const commandName = args[0].toLowerCase();
-      const command = commands.get(commandName) || commands.get(aliases.get(commandName));
-
-      if (!command) {
-        await message.reply(`Command "${commandName}" not found.`);
-      } else {
-        const configCommand = command.config;
-        const roleText = roleTextToString(configCommand.role);
-        const author = configCommand.author || "Unknown";
-
-        const longDescription = configCommand.longDescription ? configCommand.longDescription.en || "No description" : "No description";
-
-        const guideBody = configCommand.guide?.en || "No guide available.";
-        const usage = guideBody.replace(/{he}/g, prefix).replace(/{lp}/g, configCommand.name);
-
-        const response = `╭─────────⭓\n│ 🎀 NAME: ${configCommand.name}\n│ 📃 Aliases: ${configCommand.aliases ? configCommand.aliases.join(", ") : "Do not have"}\n├──‣ INFO\n│ 📝 𝗗𝗲𝘀𝗰𝗿𝗶𝗽𝘁𝗶𝗼𝗻: ${longDescription}\n│ 👑 𝗔𝗱𝗺𝗶𝗻: Hasib\n│ 📚 𝗚𝘂𝗶𝗱𝗲: ${usage}\n├──‣ Usage\n│ ⭐ 𝗩𝗲𝗿𝘀𝗶𝗼𝗻: ${configCommand.version || "1.0"}\n│ ♻️ 𝗥𝗼𝗹𝗲: ${roleText}\n╰────────────⭓`;
-
-        const helpMessage = await message.reply(response);
-
-          setTimeout(() => {
-          message.unsend(helpMessage.messageID);
-        }, 80000);
+    const allCommands = [];
+    for (const cat of categoryNames) {
+      for (const name of categories[cat]) {
+        allCommands.push({ name, category: cat });
       }
     }
-  },
-};
 
-function roleTextToString(roleText) {
-  switch (roleText) {
-    case 0:
-      return "0 (All users)";
-    case 1:
-      return "1 (Group administrators)";
-    case 2:
-      return "2 (Admin bot)";
-    default:
-      return "Unknown role";
+    if (!allCommands.length) return message.reply("⚠️ No commands available.");
+
+    const totalPage = Math.ceil(allCommands.length / numberOfOnePage);
+    if (page < 1 || page > totalPage)
+      return message.reply(`⚠️ Page ${page} does not exist. Only ${totalPage} pages.`);
+
+    const start = (page - 1) * numberOfOnePage;
+    const commandsToShow = allCommands.slice(start, start + numberOfOnePage);
+
+    let msg = `☠️ HELP MENU_☠️\n\n`;
+    let lastCategory = "";
+
+    for (const cmd of commandsToShow) {
+      if (cmd.category !== lastCategory) {
+        msg += `╭───⊙ 🗂️ ${cmd.category.toUpperCase()} 🤼‍♂️\n`;
+        lastCategory = cmd.category;
+      }
+      msg += `│ 📝 ${cmd.name}\n`;
+    }
+
+    msg += `╰──────────────⊙\n`;
+
+    msg += `🗂️ Total Commands: ${allCommands.length}\n`;
+    msg += `⚡ Prefix: '${prefix}'\n`;
+    msg += `👤 Developer: Hasib\n`;
+    msg += `💬 Use ${prefix}help <command> to see detailed info\n`;
+    msg += `📄 Page: ${page}/${totalPage}`;
+
+    return message.reply(msg);
   }
-	      }
+} 
