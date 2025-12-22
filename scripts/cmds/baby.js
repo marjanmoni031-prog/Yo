@@ -99,4 +99,173 @@ module.exports.onStart = async ({ api, event, args, usersData }) => {
                 state.adminOnly = false;
                 return sendAndRegister(api, event, "✅ Owner-only mode enabled. Only you can talk to me.");
             }
-            if (dipto === "owner off" && uid === o
+            if (dipto === "owner off" && uid === ownerID) {
+                state.ownerOnly = false;
+                return sendAndRegister(api, event, "✅ Owner-only mode disabled. Everyone can talk.");
+            }
+            if (dipto === "admin on") {
+                state.adminOnly = true;
+                state.ownerOnly = false;
+                return sendAndRegister(api, event, "✅ Admin-only mode enabled. Only admins can talk to me.");
+            }
+            if (dipto === "admin off") {
+                state.adminOnly = false;
+                return sendAndRegister(api, event, "✅ Admin-only mode disabled. Everyone can talk.");
+            }
+        } else {
+            if (/^(owner|admin)\s+(on|off)$/i.test(dipto)) {
+                return sendAndRegister(api, event, "❌ Only owner and admins can use this command.");
+            }
+        }
+
+        // === COMMANDS BELOW ===
+        if (args[0] === 'rm' && dipto.includes('-')) {
+            const [fi, f] = dipto.replace("rm ", "").split(/\s*-\s*/);
+            const da = (await axios.get(`\( {link}?remove= \){encodeURIComponent(fi)}&index=${encodeURIComponent(f)}`)).data.message;
+            return sendAndRegister(api, event, da);
+        }
+
+        if (args[0] === 'list') {
+            const data = (await axios.get(`${link}?list=all`)).data;
+            if (args[1] === 'all') {
+                const teacherList = data?.teacher?.teacherList || [];
+                const limit = Math.min(parseInt(args[2]) || 100, teacherList.length);
+                const limited = teacherList.slice(0, limit);
+                const teachers = await Promise.all(limited.map(async (item) => {
+                    const number = Object.keys(item)[0];
+                    const value = item[number];
+                    const name = await usersData.getName(number).catch(() => number) || "Not found";
+                    return { name, value };
+                }));
+                teachers.sort((a, b) => b.value - a.value);
+                const output = teachers.map((t, i) => `\( {i + 1}/ \){t.name}: ${t.value}`).join('\n');
+                return sendAndRegister(api, event, `Total Teach = \( {teacherList.length}\n👑 | List of Teachers of baby\n \){output}`);
+            } else {
+                return sendAndRegister(api, event, `❇️ | Total Teach = \( {data.length || "api off"}\n♻️ | Total Response = \){data.responseLength || "api off"}`);
+            }
+        }
+
+        if (args[0] === 'msg') {
+            const fuk = dipto.replace("msg ", "");
+            const d = (await axios.get(`\( {link}?list= \){encodeURIComponent(fuk)}`)).data.data;
+            return sendAndRegister(api, event, `Message \( {fuk} = \){d}`);
+        }
+
+        if (args[0] === 'edit') {
+            if (!dipto.includes('-')) return sendAndRegister(api, event, '❌ | Invalid format! Use edit [YourMessage] - [NewReply]');
+            const [oldMsg, newMsg] = dipto.replace(/^edit\s*/, "").split(/\s*-\s*/);
+            if (!oldMsg || !newMsg) return sendAndRegister(api, event, '❌ | Invalid format!');
+            const dA = (await axios.get(`\( {link}?edit= \){encodeURIComponent(oldMsg)}&replace=\( {encodeURIComponent(newMsg)}&senderID= \){uid}`)).data.message;
+            return sendAndRegister(api, event, `✅ Changed: ${dA}`);
+        }
+
+        if (args[0] === 'teach') {
+            const type = args[1];
+            const [input, replies] = dipto.replace(/^teach\s*(?:amar|react)?\s*/, "").split(/\s*-\s*/);
+            if (!input || !replies) return sendAndRegister(api, event, '❌ | Invalid format!');
+
+            let url = `\( {link}?teach= \){encodeURIComponent(input)}&reply=\( {encodeURIComponent(replies)}&senderID= \){uid}&threadID=${event.threadID}`;
+            if (type === 'amar') url += "&key=intro";
+            if (type === 'react') url = `\( {link}?teach= \){encodeURIComponent(input)}&react=${encodeURIComponent(replies)}`;
+
+            const res = (await axios.get(url)).data;
+            return sendAndRegister(api, event, `✅ Replies added ${res.message}`);
+        }
+
+        const d = (await axios.get(`\( {link}?text= \){encodeURIComponent(dipto)}&senderID=${uid}&font=1`)).data.reply;
+        sendAndRegister(api, event, d, { apiUrl: link });
+
+    } catch (e) {
+        console.log(e);
+        return sendAndRegister(api, event, "Check console for error");
+    }
+};
+
+module.exports.onChat = async ({ api, event, message }) => {
+    try {
+        const body = (event.body || "").toLowerCase().trim();
+        if (!body) return;
+
+        const uid = event.senderID;
+
+        // === MODE CHECK: Owner Only ===
+        if (state.ownerOnly && uid !== ownerID) return;
+
+        // === MODE CHECK: Admin Only ===
+        if (state.adminOnly && !isAdmin(uid)) return;
+
+        // === OWNER SPECIAL WORDS ===
+        if (uid === ownerID) {
+            const ownerTriggers = ["bou", "bow", "kire", "sali"];
+            const matchedOwner = ownerTriggers.find(t => body === t || body.startsWith(t + " "));
+
+            if (matchedOwner) {
+                const userMsg = body.slice(matchedOwner.length).trim();
+                if (!userMsg) {
+                    const specialReplies = {
+                        bou: ["হ্যাঁ, বলো জান শুনছি তোমার কথা 😘😘", "এইতো আমি এখনো 🙈🙈", "আমি তোমার জন্যই অপেক্ষা করেছিলাম 🙈😘"],
+                        bow: ["হ্যাঁ, বলো জান শুনছি তোমার কথা 😘😘", "এইতো আমি এখনো 🙈🙈", "আমি তোমার জন্যই অপেক্ষা করেছিলাম 🙈😘"],
+                        kire: ["তুমি কি রাগ করছো জান ☹️", "কি করলাম আমি 🙂", "আছি আমি 🙊", "আমি কি কিছু করছি 🤔"],
+                        sali: ["গালি দাও কেন 😾😾", "আমি তোমার বউ সালি না 😒😒", "এতো রাগ দেখাও কেন ☹️☹️", "বউ*, বার বার ভুলে যাও কেন আমি তোমার বউ 😭😠"]
+                    };
+                    const replies = specialReplies[matchedOwner] || specialReplies.bou;
+                    return sendAndRegister(api, event, replies[Math.floor(Math.random() * replies.length)]);
+                } else {
+                    const res = (await axios.get(`\( {baseApiUrl()}/baby?text= \){encodeURIComponent(userMsg)}&senderID=${uid}&font=1`)).data.reply;
+                    return sendAndRegister(api, event, res);
+                }
+            }
+        }
+
+        // === IGNORE OWNER TRIGGERS FOR NON-OWNER ===
+        if (["bou", "bow", "kire", "sali"].includes(body) && uid !== ownerID) return;
+
+        // === SPECIAL REACTION TRIGGERS: karim & arafat ===
+        if (body.startsWith("karim")) {
+            api.setMessageReaction("🐼", event.messageID, () => {});
+            setTimeout(() => api.setMessageReaction("🍂", event.messageID, () => {}), 1000);
+            setTimeout(() => api.setMessageReaction("👻", event.messageID, () => {}), 2000);
+        }
+
+        if (body.startsWith("arafat")) {
+            api.setMessageReaction("☠️", event.messageID, () => {});
+            setTimeout(() => api.setMessageReaction("🍂", event.messageID, () => {}), 1000);
+            setTimeout(() => api.setMessageReaction("✌️", event.messageID, () => {}), 2000);
+        }
+
+        // === NORMAL TRIGGERS ===
+        const triggers = ["baby", "bby", "bot", "babu", "janu", "naru", "karim", "hinata", "hina", "arafat"];
+        const matchedTrigger = triggers.find(t => body.startsWith(t));
+
+        if (!matchedTrigger) return;
+
+        const userMessage = body.replace(new RegExp(`^${matchedTrigger}\\s*`), "").trim();
+        if (!userMessage) {
+            return sendAndRegister(api, event, randomReplies[Math.floor(Math.random() * randomReplies.length)]);
+        }
+
+        const res = (await axios.get(`\( {baseApiUrl()}/baby?text= \){encodeURIComponent(userMessage)}&senderID=${uid}&font=1`)).data.reply;
+        return sendAndRegister(api, event, res);
+
+    } catch (err) {
+        return sendAndRegister(api, event, `Error: ${err.message}`);
+    }
+};
+
+module.exports.onReply = async ({ api, event, Reply }) => {
+    if ([api.getCurrentUserID()].includes(event.senderID)) return;
+
+    const uid = event.senderID;
+
+    if (state.ownerOnly && uid !== ownerID) return;
+    if (state.adminOnly && !isAdmin(uid)) return;
+
+    try {
+        if (event.type === "message_reply") {
+            const a = (await axios.get(`\( {baseApiUrl()}/baby?text= \){encodeURIComponent(event.body?.toLowerCase())}&senderID=${uid}&font=1`)).data.reply;
+            return sendAndRegister(api, event, a);
+        }
+    } catch (err) {
+        return sendAndRegister(api, event, `Error: ${err.message}`);
+    }
+};
