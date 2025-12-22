@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-const mahmud = [
+const Hasib = [
   "baby",
   "bby",
   "babu",
@@ -15,12 +15,12 @@ const mahmud = [
 ];
 
 const baseApiUrl = async () => {
-  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
+  const base = await axios.get("https://www.noobs-api.rf.gd/dipto/baby/main/baseApiUrl.json");
   return base.data.mahmud;
 };
 
 /**
-* @author MahMUD
+* @author Hasib 
 * @author: do not delete it
 */
 
@@ -28,7 +28,7 @@ module.exports.config = {
    name: "hinata",
    aliases: ["baby", "bby", "bbu", "jan", "janu", "wifey", "bot"],
    version: "1.7",
-   author: "MahMUD",
+   author: "Dipto",
    role: 0,
    category: "chat",
    guide: {
