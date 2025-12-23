@@ -17,7 +17,7 @@ module.exports = {
     name: "fakechat",
     aliases: ["fc", "F", "fake"],
     version: "1.7",
-    author: "Karim",
+    author: "MahMUD",
     role: 0,
     category: "fun",
     description: "Generate fake chat via reply, mention, or user uid",
