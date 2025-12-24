@@ -6,7 +6,7 @@ const path = require("path");
 module.exports = {
   config: {
     name: "mygf",
-    author: "Hasib (modified with Grok's measurements)",
+    author: "Hasib (Grok template improved)",
     category: "love",
   },
 
@@ -14,6 +14,7 @@ module.exports = {
     try {
       const senderData = await usersData.get(event.senderID);
       const senderName = senderData.name;
+
       const threadData = await api.getThreadInfo(event.threadID);
       const users = threadData.userInfo;
 
@@ -57,53 +58,63 @@ module.exports = {
         matchCandidates[Math.floor(Math.random() * matchCandidates.length)];
       const matchName = selectedMatch.name;
 
-      // === Updated to match your exact template ===
-      const width = 1280;  // Original template width
-      const height = 720;  // Original template height
+      // Canvas dimensions (template)
+      const width = 1280;
+      const height = 720;
       const canvas = createCanvas(width, height);
       const ctx = canvas.getContext("2d");
 
-      // Load background (your King & Queen template)
+      // Load background template
       const backgroundUrl = "https://i.postimg.cc/RFVB0KdS/grok-image-xang5o4.jpg";
       const background = await loadImage(backgroundUrl);
       ctx.drawImage(background, 0, 0, width, height);
 
-      // Load profile pictures (high quality)
-      const senderImage = await loadImage(
-        `https://graph.facebook.com/${event.senderID}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-      );
-      const matchImage = await loadImage(
-        `https://graph.facebook.com/${selectedMatch.id}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-      );
+      // Helper: fallback avatar
+      const placeholderPath = path.join(__dirname, "placeholder.png");
+      const placeholder = fs.existsSync(placeholderPath)
+        ? await loadImage(placeholderPath)
+        : null;
 
-      // Function to draw circular avatar
+      // Helper function to load profile pic with fallback
+      async function loadProfilePic(userId) {
+        try {
+          const url = `https://graph.facebook.com/${userId}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
+          return await loadImage(url);
+        } catch (err) {
+          return placeholder;
+        }
+      }
+
+      const senderImage = await loadProfilePic(event.senderID);
+      const matchImage = await loadProfilePic(selectedMatch.id);
+
+      // Draw circular avatar
       function drawCircleAvatar(img, centerX, centerY, radius) {
+        if (!img) return;
         ctx.save();
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.closePath();
         ctx.clip();
         ctx.drawImage(img, centerX - radius, centerY - radius, radius * 2, radius * 2);
         ctx.restore();
       }
 
-      // === Exact positions and size from your template ===
+      // Avatar positions
       const avatarRadius = 156; // Diameter 312px → radius 156px
-
-      // Left circle - King (usually sender if male)
-      drawCircleAvatar(senderImage, 340, 360, avatarRadius);
-
-      // Right circle - Queen (matched person)
-      drawCircleAvatar(matchImage, 940, 360, avatarRadius);
+      drawCircleAvatar(senderImage, width * 0.266, height * 0.5, avatarRadius); // left
+      drawCircleAvatar(matchImage, width * 0.734, height * 0.5, avatarRadius); // right
 
       // Save output
-      const outputPath = path.join(__dirname, "pair_output.png");
-      const out = fs.createWriteStream(outputPath);
-      const stream = canvas.toBuffer(); // Faster than streaming for most cases
+      const outputPath = path.join(__dirname, `pair_${event.senderID}.png`);
+      const buffer = canvas.toBuffer();
+      await fs.promises.writeFile(outputPath, buffer);
 
-      fs.writeFileSync(outputPath, stream);
-
-      const lovePercent = Math.floor(Math.random() * 31) + 70;
+      // Calculate love percentage (optional: based on name length)
+      const lovePercent = Math.min(
+        100,
+        50 + Math.floor((senderName.length + matchName.length) * 2 + Math.random() * 20)
+      );
 
       const message = `🥰 𝗦𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹 𝗽𝗮𝗶𝗿𝗶𝗻𝗴\n` +
                       `・${senderName} 🎀\n` +
@@ -115,7 +126,7 @@ module.exports = {
         { body: message, attachment: fs.createReadStream(outputPath) },
         event.threadID,
         () => {
-          fs.unlinkSync(outputPath); // Clean up
+          if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
         },
         event.messageID
       );
