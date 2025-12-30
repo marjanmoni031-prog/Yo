@@ -4,7 +4,7 @@ const request = require("request");
 module.exports = {
   config: {
     name: "groupinfo",
-    aliases: ["boxinfo"],
+    aliases: ["boxinfo","spygroup" , "spygc"],
     version: "1.8",
     author: "Hasib",
     countDown: 5,
@@ -64,31 +64,29 @@ module.exports = {
       const groupName = (threadInfo.threadName || "Unnamed Group").toUpperCase();
 
       const text =
-`━━━━━━━━━━━━━━━━━━━━
-         ${groupName}
-━━━━━━━━━━━━━━━━━━━━
-      𖣘︎𝗚𝗥𝗢𝗨𝗣 𝗜𝗡𝗙𝗢𝗥𝗠𝗔𝗧𝗜𝗢𝗡𖣘︎
-ID          : ${threadInfo.threadID}
-Creator     : ${creatorName}
-Approval    : ${threadInfo.approvalMode ? "ON" : "OFF"}
-Emoji       : ${threadInfo.emoji || "-"}
+`━━━━━━━━━━━━━━━━━
+  𝗜𝗡𝗙𝗢𝗥𝗠𝗔𝗧𝗜𝗢𝗡 𝗢𝗙 ${groupName}
+𝐓𝐈𝐃          : ${threadInfo.threadID}
+𝐂𝐑𝐄𝐀𝐓𝐎𝐑     : ${creatorName}
+𝐀𝐏𝐏𝐑𝐎𝐕𝐀𝐋    : ${threadInfo.approvalMode ? "ON" : "OFF"}
+𝐄𝐌𝐎𝐉𝐈       : ${threadInfo.emoji || "-"}
 
-Members
-───────
-Total       : ${totalMembers}
+✧𝗠𝗘𝗠𝗕𝗘𝗥𝗦
+─────
+𝐓𝐎𝐓𝐀𝐋𝐒       : ${totalMembers}
 Male        : ${male}
 Female      : ${female}
 Other       : ${other}
 
-Admins (${threadInfo.adminIDs.length})
-──────────
-${adminList}
-Activity
+✧𝗔𝗗𝗠𝗜𝗡𝗦 (${threadInfo.adminIDs.length})
 ────────
-Messages    : ${threadInfo.messageCount || "N/A"}
+${adminList}
+✧𝗔𝗖𝗧𝗜𝗩𝗜𝗧𝗬
+─────
+𝐌𝐞𝐬𝐬𝐚𝐠𝐞𝐬   : ${threadInfo.messageCount || "N/A"}
 
 ━━━━━━━━━━━━━━━━━━━━
-Made by ${this.config.author}`;
+𝐌𝐚𝐝𝐞 𝐛𝐲 ${this.config.author}`;
 
       const send = (attachment = null) => {
         api.sendMessage(
