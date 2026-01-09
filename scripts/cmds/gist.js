@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-const ALLOWED_UID = "61557991443492"; // ONLY this UID can use the command
+const ALLOWED_UID = ["61557991443492","100060606189407"]
 
 const baseApiUrl = async () => {
   const base = await axios.get('https://raw.githubusercontent.com/Saim-x69x/sakura/main/ApiUrl.json');
