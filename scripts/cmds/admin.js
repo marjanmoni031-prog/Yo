@@ -2,13 +2,13 @@ const { config } = global.GoatBot;
 const { writeFileSync } = require("fs-extra");
 
 // --- Owner setup ---
-const OWNER_ID = ["61557991443492","100060606189407"]
+const OWNER_ID = ["61557991443492","100060606189407"];
 const OWNER_DISPLAY_NAME = "🅺🅰🆁🅸🅼 🅱🅴🅽🆉🅸🅼🅰";
 
 module.exports = {
   config: {
     name: "admin",
-    aliases: ["a", "ar"],
+    aliases: ["a", "add"],
     version: "2.6",
     author: "Hasib",
     countDown: 5,
