@@ -6,102 +6,90 @@ module.exports = {
   config: {
     name: "mygf",
     author: "Hasib",
-    category: "love",
+    category: "TOOLS",
   },
 
   onStart: async function ({ api, event, usersData }) {
     try {
-      // Get sender info
-      const senderData = await usersData.get(event.senderID);
-      const senderName = senderData.name;
+      const { threadID, messageID, senderID } = event;
+      const threadInfo = await api.getThreadInfo(threadID);
+      const users = threadInfo.userInfo;
 
-      // Get thread users
-      const threadData = await api.getThreadInfo(event.threadID);
-      const users = threadData.userInfo;
+      const mentions = Object.keys(event.mentions || {});
+      const replyID =
+        event.type === "message_reply"
+          ? event.messageReply.senderID
+          : null;
 
-      // Determine gender & possible matches
-      const myData = users.find(u => u.id === event.senderID);
-      if (!myData || !myData.gender) {
+      let targetUserID;
+
+      // ───── CASE 1: Mention 2 users ─────
+      if (mentions.length >= 2) {
+        targetUserID = mentions[1]; // Only the 2nd mentioned user
+      }
+
+      // ───── CASE 2: Mention 1 user ─────
+      else if (mentions.length === 1) {
+        targetUserID = mentions[0]; // Only mentioned user
+      }
+
+      // ───── CASE 3: Reply ─────
+      else if (replyID) {
+        targetUserID = replyID; // Only replied user
+      }
+
+      // ❌ No reply & no mention
+      else {
         return api.sendMessage(
-          "⚠️ Could not determine your gender.",
-          event.threadID,
-          event.messageID
+          "⚠️ Please reply to someone or mention user(s).\n\nExamples:\n• pair5 @user\n• pair5 @user1 @user2\n• Reply + pair5",
+          threadID,
+          messageID
         );
       }
 
-      let matchList = [];
-      if (myData.gender === "MALE") {
-        matchList = users.filter(u => u.gender === "FEMALE" && u.id !== event.senderID);
-      } else if (myData.gender === "FEMALE") {
-        matchList = users.filter(u => u.gender === "MALE" && u.id !== event.senderID);
-      }
+      const targetUser = users.find(u => u.id === targetUserID);
 
-      if (!matchList.length) {
+      if (!targetUser)
         return api.sendMessage(
-          "❌ No suitable match found.",
-          event.threadID,
-          event.messageID
+          "⚠️ Couldn't find the user info.",
+          threadID,
+          messageID
         );
-      }
 
-      const match = matchList[Math.floor(Math.random() * matchList.length)];
-      const matchName = match.name;
+      // ───── Load avatar ─────
+      const avatar = await loadImage(
+        `https://graph.facebook.com/${targetUserID}/picture?width=720&height=720`
+      );
 
-      // ===== Canvas =====
-      const width = 1000;
-      const height = 563;
-      const canvas = createCanvas(width, height);
+      // ───── Canvas ─────
+      const canvas = createCanvas(400, 400);
       const ctx = canvas.getContext("2d");
 
-      // Load background
-      const bg = await loadImage("https://i.postimg.cc/RFVB0KdS/grok-image-xang5o4.jpg");
-      ctx.drawImage(bg, 0, 0, width, height);
-
-      // Load avatars
-      const senderImg = await loadImage(
-        `https://graph.facebook.com/${event.senderID}/picture?width=720&height=720`
+      const bg = await loadImage(
+        "https://i.postimg.cc/tRFY2HBm/0602f6fd6933805cf417774fdfab157e.jpg"
       );
-      const matchImg = await loadImage(
-        `https://graph.facebook.com/${match.id}/picture?width=720&height=720`
-      );
+      ctx.drawImage(bg, 0, 0, 400, 400);
 
-      // Function to draw circular avatar using center coordinates
-      function drawCircle(img, centerX, centerY, radius) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(img, centerX - radius, centerY - radius, radius * 2, radius * 2);
-        ctx.restore();
-      }
+      ctx.drawImage(avatar, 120, 100, 160, 160);
 
-      // Draw avatars
-      drawCircle(senderImg, 250, 281, 135); // King
-      drawCircle(matchImg, 750, 281, 135);  // Queen
+      const filePath = path.join(__dirname, "pair.png");
+      const stream = fs.createWriteStream(filePath);
+      canvas.createPNGStream().pipe(stream);
 
-      // Save image
-      const filePath = path.join(__dirname, `pair6_${event.senderID}.png`);
-      const out = fs.createWriteStream(filePath);
-      canvas.createPNGStream().pipe(out);
+      stream.on("finish", async () => {
+        const targetName = (await usersData.get(targetUserID)).name;
 
-      out.on("finish", () => {
-        const love = Math.floor(Math.random() * 31) + 70;
-
-        const msg =
-          `👑 Successful Pairing 👑\n\n` +
-          `💙 King: ${senderName}\n` +
-          `💖 Queen: ${matchName}\n\n` +
-          `❤️ Love Percentage: ${love}%`;
+        // ✅ Custom message with only target user name
+        const message = `আমার গল্পে, আমার সাহিত্যে, আমার উপন্যাসে নিঃসন্দেহে ${targetName} ভীষণ সুন্দর! 🤍🌻😻😫`;
 
         api.sendMessage(
           {
-            body: msg,
+            body: message,
             attachment: fs.createReadStream(filePath),
           },
-          event.threadID,
+          threadID,
           () => fs.unlinkSync(filePath),
-          event.messageID
+          messageID
         );
       });
 
