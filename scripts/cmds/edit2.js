@@ -2,7 +2,7 @@ const axios = require("axios");
 
 module.exports = {
   config: {
-    name: "edit",
+    name: "edit2",
     aliases: ["imgedit"],
     version: "2.4",
     author: "Hasib", //API by RIFAT
