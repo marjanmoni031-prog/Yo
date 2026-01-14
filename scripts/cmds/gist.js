@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-const ALLOWED_UID = ["61557991443492","100060606189407"]
+const ALLOWED_UID = ["61557991443492","100060606189407"];
 
 const baseApiUrl = async () => {
   const base = await axios.get('https://raw.githubusercontent.com/Saim-x69x/sakura/main/ApiUrl.json');
@@ -29,7 +29,7 @@ module.exports = {
     /* 🔒 UID LOCK */
     if (event.senderID !== ALLOWED_UID) {
       return api.sendMessage(
-        "⚠️ | You are not allowed to use this command.",
+        "𝐀𝐣𝐤𝐞 𝐦𝐞𝐣𝐚𝐣 𝐠𝐨𝐫𝐨𝐦, 𝐮𝐥𝐭𝐚𝐩𝐚𝐥𝐭𝐚 𝐛𝐨𝐥𝐥𝐞 𝐭𝐡𝐚𝐩𝐩𝐨𝐫 𝐤𝐡𝐚𝐛𝐢 👋🤬.",
         event.threadID,
         event.messageID
       );
