@@ -2,10 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-const ALLOWED_UID = ["61557991443492","100060606189407"];
+const ALLOWED_UID = ["61557991443492", "100060606189407"];
 
 const baseApiUrl = async () => {
-  const base = await axios.get('https://raw.githubusercontent.com/Saim-x69x/sakura/main/ApiUrl.json');
+  const base = await axios.get(
+    'https://raw.githubusercontent.com/Saim-x69x/sakura/main/ApiUrl.json'
+  );
   return base.data.gist;
 };
 
@@ -18,16 +20,19 @@ module.exports = {
     usePrefix: true,
     description: "Generate a Gist link from replied code or from local bot files",
     category: "convert",
-    guide: { 
-      en: "{pn} → Reply to a code snippet to create a Gist\n{pn} [filename] → Create a Gist from cmds folder\n{pn} -e [filename] → Create a Gist from events folder" 
+    guide: {
+      en:
+        "{pn} → Reply to a code snippet to create a Gist\n" +
+        "{pn} [filename] → Create a Gist from cmds folder\n" +
+        "{pn} -e [filename] → Create a Gist from events folder"
     },
     countDown: 1
   },
 
   onStart: async function ({ api, event, args }) {
 
-    /* 🔒 UID LOCK */
-    if (event.senderID !== ALLOWED_UID) {
+    /* 🔒 UID LOCK (FIXED) */
+    if (!ALLOWED_UID.includes(event.senderID)) {
       return api.sendMessage(
         "𝐀𝐣𝐤𝐞 𝐦𝐞𝐣𝐚𝐣 𝐠𝐨𝐫𝐨𝐦, 𝐮𝐥𝐭𝐚𝐩𝐚𝐥𝐭𝐚 𝐛𝐨𝐥𝐥𝐞 𝐭𝐡𝐚𝐩𝐩𝐨𝐫 𝐤𝐡𝐚𝐛𝐢 👋🤬.",
         event.threadID,
@@ -40,19 +45,22 @@ module.exports = {
 
     try {
 
-      // 📌 Reply with code
+      /* 📌 Reply with code */
       if (event.type === "message_reply" && event.messageReply?.body) {
         code = event.messageReply.body;
 
         if (!fileName) {
-          const time = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+          const time = new Date()
+            .toISOString()
+            .replace(/[-:T]/g, '')
+            .slice(0, 14);
           fileName = `gist_${time}.js`;
         } else if (!fileName.endsWith(".js")) {
           fileName = `${fileName}.js`;
         }
       }
 
-      // 📁 From bot files
+      /* 📁 From bot files */
       else if (fileName) {
         let filePath;
 
@@ -66,22 +74,32 @@ module.exports = {
             );
           }
           fileName = evFile.endsWith(".js") ? evFile : `${evFile}.js`;
-          filePath = path.resolve(__dirname, '../../scripts/events', fileName);
+          filePath = path.resolve(
+            __dirname,
+            '../../scripts/events',
+            fileName
+          );
         } else {
-          const commandsPath = path.resolve(__dirname, '../../scripts/cmds');
+          const commandsPath = path.resolve(
+            __dirname,
+            '../../scripts/cmds'
+          );
           filePath = fileName.endsWith(".js")
             ? path.join(commandsPath, fileName)
             : path.join(commandsPath, `${fileName}.js`);
         }
 
         if (!fs.existsSync(filePath)) {
-          const dirToSearch = args[0] === "-e"
-            ? path.resolve(__dirname, '../../scripts/events')
-            : path.resolve(__dirname, '../../scripts/cmds');
+          const dirToSearch =
+            args[0] === "-e"
+              ? path.resolve(__dirname, '../../scripts/events')
+              : path.resolve(__dirname, '../../scripts/cmds');
 
           const files = fs.readdirSync(dirToSearch);
           const similar = files.filter(f =>
-            f.toLowerCase().includes(fileName.replace(".js", "").toLowerCase())
+            f.toLowerCase().includes(
+              fileName.replace(".js", "").toLowerCase()
+            )
           );
 
           if (similar.length > 0) {
@@ -93,7 +111,9 @@ module.exports = {
           }
 
           return api.sendMessage(
-            `❌ File "${fileName}" not found in ${args[0] === "-e" ? "events" : "cmds"} folder.`,
+            `❌ File "${fileName}" not found in ${
+              args[0] === "-e" ? "events" : "cmds"
+            } folder.`,
             event.threadID,
             event.messageID
           );
@@ -103,7 +123,7 @@ module.exports = {
         if (!fileName.endsWith(".js")) fileName = `${fileName}.js`;
       }
 
-      // ❌ No input
+      /* ❌ No input */
       else {
         return api.sendMessage(
           "⚠ | Please reply with code OR provide a file name.",
@@ -128,7 +148,8 @@ module.exports = {
     } catch (err) {
       console.error("❌ Gist Error:", err.message || err);
       return api.sendMessage(
-        "⚠️ Failed to create gist. Maybe server issue.\n💬 Contact author for help: https://m.me/ye.bi.nobi.tai.244493",
+        "⚠️ Failed to create gist. Maybe server issue.\n" +
+        "💬 Contact author for help: https://m.me/ye.bi.nobi.tai.244493",
         event.threadID,
         event.messageID
       );
