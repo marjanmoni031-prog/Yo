@@ -13,10 +13,26 @@ const DEFAULT_RULES = [
 
 const OWNER_UID = ["61557991443492"]; // bot owner/admin in config
 
+// Function to number rules dynamically (keeps the front intact)
+function numberRules(rules) {
+    return rules.map((rule, index) => {
+        // Keep the first line (title) as-is
+        if (index === 0) return rule;
+
+        // Remove old number if exists
+        const cleanRule = rule.replace(/^[^\w\u1D7D0-\u1D7FF]+\s*/, "");
+
+        // Unicode numbers start from 𝟏 (U+1D7D9)
+        const num = String.fromCodePoint(0x1D7D9 + index - 1);
+
+        return `${num}. ${cleanRule}`;
+    });
+}
+
 module.exports = {
     config: {
         name: "rules",
-        version: "1.7",
+        version: "1.8",
         author: "Hasib",
         countDown: 5,
         role: 0,
@@ -70,8 +86,8 @@ module.exports = {
         const canEdit = isOwner || isAdmin;
 
         if (!type) {
-            // View rules
-            return message.reply(rulesOfThread.join("\n"));
+            // View rules with numbering
+            return message.reply(numberRules(rulesOfThread).join("\n"));
         }
 
         // ADD
